@@ -36,6 +36,7 @@ public class ExtendDueDate
     super();
   }
 
+  @SuppressWarnings("oracle.jdeveloper.java.nested-assignment")
   public static void main(String[] args)
   {
     loadProperties(args[0]);
@@ -47,8 +48,8 @@ public class ExtendDueDate
       BufferedWriter writer;
       String line;
 
-      writer = new BufferedWriter(new FileWriter(new File("")));
-      reader = new BufferedReader(new FileReader(new File("")));
+      writer = new BufferedWriter(new FileWriter(new File(args[2])));
+      reader = new BufferedReader(new FileReader(new File(args[1])));
       line = null;
 
       while ((line = reader.readLine()) != null)
@@ -56,7 +57,7 @@ public class ExtendDueDate
         String[] tokens;
         int code;
 
-        tokens = line.split("arg0");
+        tokens = line.split(",");
         //try to extend due date
         code = extendDate(tokens[0]).getReturnCode();
         if (code != 0)
@@ -138,16 +139,39 @@ public class ExtendDueDate
     CodeIdPair results;
 
     results = new CodeIdPair();
+    
+    if (validateDate() == 0)
+    {
+      request = new ApiRequest(props.getProperty("voyager.appcode"), "CHGDUEDATE");
+      request.addParameter("TI", transaction);
+      request.addParameter("RD", props.getProperty("circ.newdate"));
+      //request.addParameter("UBID", "1@".concat(dbKey));
+      server.send(request.toString());
+      response = new ApiResponse(server.receive());
 
-    request = new ApiRequest(props.getProperty("voyager.appcode"), "CHGDUEDATE");
-    request.addParameter("TI", transaction);
+      results.setReturnCode(response.getReturnCode());
+
+      return results;
+    }
+    else
+    {
+      System.out.print("something wrong in validate date");
+      results.setReturnCode(5);
+      return results;
+    }
+  }
+  
+  private static int validateDate()
+  {
+    ApiRequest request;
+    ApiResponse response;
+
+    request = new ApiRequest(props.getProperty("voyager.appcode"), "VALIDATE_CAL_DATE");
+    request.addParameter("LI", props.getProperty("voyager.locale"));
     request.addParameter("RD", props.getProperty("circ.newdate"));
-    request.addParameter("UBID", "1@".concat(dbKey));
     server.send(request.toString());
     response = new ApiResponse(server.receive());
 
-    results.setReturnCode(response.getReturnCode());
-
-    return results;
+    return response.getReturnCode();
   }
 }
